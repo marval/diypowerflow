@@ -1,3 +1,5 @@
 
 .idea/vcs.xml
 .idea/workspace.xml
+.vscode/settings.json
+node_modules/

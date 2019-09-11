@@ -21,6 +21,8 @@ var house_watt = 0;
 var house_kwh = 0;
 var powerwall_watt = 0;
 var powerwall_soc = 0;
+var powerwall_kwh_discharge = 0;
+var powerwall_kwh_scharge = 0;
 var solar_prediction = 0;
 
 function loadValues(url) {
@@ -76,12 +78,14 @@ function updateValues(data) {
 //            powerwall_watt = 0;
 //         }
 //       }
-       if (data[i].name == powerwall_soc_name) {
-         powerwall_soc = data[i].value;
-         if (powerwall_soc>100) {
-           powerwall_soc=100;
+        if (data[i].name == powerwall_soc_name) {
+            powerwall_soc = data[i].value.soc;
+            powerwall_kwh_discharge = data[i].value.discharge_kwh;
+            powerwall_kwh_scharge = data[i].value.charge_kwh;
+            if (powerwall_soc>100) {
+            powerwall_soc=100;
+            }
         }
-       }
     }
 }
 
@@ -192,7 +196,7 @@ function refresh_ui() {
         $("#powerwall-dot-out").removeClass("on");
         $("#powerwall-dot-in").removeClass("on");
     }
-    $("#powerwall_soc").text(powerwall_soc+"%");
+    $("#powerwall_soc").text(powerwall_soc + "% ⬇️" + powerwall_kwh_discharge.toFixed(2) + 'kWh ⬆️' + powerwall_kwh_scharge.toFixed(2) + 'kWh');
 
     setAnimationTime(powerwall_watt,"#powerwall-dot-in animate.dot1, #powerwall-dot-out animate.dot1, #powerwall animate.glow","#powerwall-dot-in animate.dot2, #powerwall-dot-out animate.dot2");
 
