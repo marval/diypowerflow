@@ -66,7 +66,7 @@ p, text, h3 {
 	font-style: normal;
 	font-variant: normal;
 	font-weight: 500;
-	line-height: 15.4px;
+	line-height: 18px;
 	text-align: right;
 	margin:10px;
 }
@@ -76,7 +76,7 @@ h3 {
 }
 
 .middle {
-    height: calc(100% - 393px);
+    height: calc(100% - 440px);
     margin-top: -7px;
     margin-bottom: -7px;
 }

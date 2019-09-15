@@ -10,10 +10,14 @@ var solar_kwh_name = "solar kwh";
 var grid_kwh_name = "grid kwh";
 var house_kwh_name = "house kwh";
 var powerwall_soc_name = "powerwall soc";
+var cellV_name = "powerwall soc";
+var cellT_name = "powerwall soc";
 
 //---------------------------------------------
 
 var solar_watt = 0;
+var cellVoltages = {};
+var cellTemperatures = {};
 var solar_kwh = 0;
 var grid_watt = 0;
 var grid_kwh = 0;
@@ -196,7 +200,7 @@ function refresh_ui() {
         $("#powerwall-dot-out").removeClass("on");
         $("#powerwall-dot-in").removeClass("on");
     }
-    $("#powerwall_soc").text(powerwall_soc + "% ⬇️" + powerwall_kwh_discharge.toFixed(2) + 'kWh ⬆️' + powerwall_kwh_scharge.toFixed(2) + 'kWh');
+    $("#powerwall_soc").html("🔋" + powerwall_soc + "%<br\> OUT⚡: " + powerwall_kwh_discharge.toFixed(2) + 'kWh IN⚡: ' + powerwall_kwh_scharge.toFixed(2) + 'kWh<br\>Cell V ⬇️ ' + cellVoltages.minV + 'V ⬆️ ' + cellVoltages.maxV + 'V AVG: ' + cellVoltages.avgV + 'V<br\>Cell T ❄️ ' + cellTemperatures.minT + '°C 🔥 ' + cellTemperatures.maxT + '°C AVG: ' + cellTemperatures.avgT + '°C');
 
     setAnimationTime(powerwall_watt,"#powerwall-dot-in animate.dot1, #powerwall-dot-out animate.dot1, #powerwall animate.glow","#powerwall-dot-in animate.dot2, #powerwall-dot-out animate.dot2");
 
@@ -219,6 +223,16 @@ socket.on('powerwall', function(data) {
 
 socket.on('solar', function(data) {
     solar_watt = parseInt(data.message);
+    refresh_ui();
+});
+
+socket.on('cellVoltages', function (data) {
+    cellVoltages = data;
+    refresh_ui();
+});
+
+socket.on('cellTemps', function (data) {
+    cellTemperatures = data;
     refresh_ui();
 });
 

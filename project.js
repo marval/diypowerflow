@@ -47,7 +47,7 @@ const powerwall_soc_query = "SELECT last(ShuntSOC),last(DailySessionCumulShuntkW
 // MQTT watt topics
 const house_watt_topic = 'solar/output';
 const grid_watt_topic = 'solar/ac';
-const powerwall_watt_topic = 'solar/bat';
+const powerwall_watt_topic = 'Batrium/6687/3e32';
 const solar_watt_topic = "solar/solar";
 
 
@@ -166,8 +166,12 @@ mqtt_client.on('message', (topic, message) => {
     io.emit('house', { message: house + house2 });
   } else
     if (topic === powerwall_watt_topic) {
-      powerwall = parseInt(message.toString())
+      var tmpPowerwall = JSON.parse(message);
+
+      powerwall = parseInt(tmpPowerwall.ShuntVoltage) * parseInt(tmpPowerwall.ShuntCurrent);
       io.emit('powerwall', { message: powerwall });
+      io.emit('cellVoltages', { minV: tmpPowerwall.MinCellVolt, maxV: tmpPowerwall.MaxCellVolt, avgV: tmpPowerwall.AvgCellVolt })
+      io.emit('cellTemps', { minT: tmpPowerwall.MinCellTemp, maxT: tmpPowerwall.MaxCellTemp, avgT: tmpPowerwall.AvgCellTemp })
     } else
       if (topic === grid_watt_topic) {
         grid = parseInt(message.toString())
