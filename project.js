@@ -168,7 +168,7 @@ mqtt_client.on('message', (topic, message) => {
     if (topic === powerwall_watt_topic) {
       var tmpPowerwall = JSON.parse(message);
 
-      powerwall = parseInt(tmpPowerwall.ShuntVoltage) * parseInt(tmpPowerwall.ShuntCurrent);
+      powerwall = Number(tmpPowerwall.ShuntVoltage) * Number(tmpPowerwall.ShuntCurrent);
       io.emit('powerwall', { message: powerwall });
       io.emit('cellVoltages', { minV: tmpPowerwall.MinCellVolt, maxV: tmpPowerwall.MaxCellVolt, avgV: tmpPowerwall.AvgCellVolt })
       io.emit('cellTemps', { minT: tmpPowerwall.MinCellTemp, maxT: tmpPowerwall.MaxCellTemp, avgT: tmpPowerwall.AvgCellTemp })
