@@ -238,7 +238,7 @@ function calculatePredictions(_daysForward = 3) {
     'yr': []
   }
 
-  var today = new moment().hour(3).minute(0).second(0);
+  var today = new moment();
   var daysForward = _daysForward;
   var points = [];
   for (let index = 0; index < daysForward; index++) {
