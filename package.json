@@ -18,6 +18,7 @@
     "sync-request": "latest",
     "fast-xml-parser": "latest",
     "node-schedule": "latest",
-    "socket.io": "^2.1.1"
+    "socket.io": "^2.1.1",
+    "shelljs": "^0.8.2"
   }
 }
