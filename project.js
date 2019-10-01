@@ -1,7 +1,7 @@
 //*********************
 // BASIC configuration
-const mqtt_host = "10.0.1.20";
-const influx_host = "10.0.1.20";
+const mqtt_host = "10.0.0.20";
+const influx_host = "10.0.0.20";
 
 //**********************************************
 // Solar prediction configuration
@@ -28,8 +28,8 @@ const darkskyApi = 'e0d5e84d87bc266e4bfc47c611881574';
 // these are the weights for each forecast service, the sum should be 1.0
 // adjust to fit which service better forecasts your location
 //
-const yr_weight = 0.6;
-const darsksky_weight = 0.4;
+const yr_weight = 0.4;
+const darsksky_weight = 0.6;
 
 
 //**************************************************
@@ -69,8 +69,18 @@ const influx = new Influx.InfluxDB({
 
 const influx_batrium = new Influx.InfluxDB({
   host: influx_host,
-  database: 'batrium'
+  database: 'batrium',
+  schema: [
+    {
+      measurement: 'prediction',
+      tags: ['source'],
+      fields: {
+        production: Influx.FieldType.FLOAT
+      }
+    }
+  ]
 })
+
 
 
 var moment = require('moment');
@@ -110,12 +120,14 @@ var j1 = schedule.scheduleJob('0 2 * * *', function () {
   solar_prediction_dayOffset = 0;
   solar_prediction = calculateSolarPrediction();
   emitSolarPrediction();
+  calculatePredictions();
 
   var j2 = schedule.scheduleJob(moment(SunCalc.getTimes(moment(), latitude, longitude).sunset).toDate(), function () {
     // at sunset recalculate solar prediction for tomorrow
     solar_prediction_dayOffset = 1;
     solar_prediction = calculateSolarPrediction();
     emitSolarPrediction();
+    calculatePredictions();
   });
 
 });
@@ -208,6 +220,69 @@ app.get('/soc', function (req, res) {
     );
   });
 })
+
+
+app.get('/predictions', function (req, res) {
+  console.log('calculating');
+  var result = calculatePredictions();
+  res.json(result);
+})
+
+function calculatePredictions(_daysForward = 3) {
+  function calculateSolarPredictionLocal(_yrWeight, _darkSkyWeight, _dayOffset) {
+    return diy_sun.solar_prediction_kwh(panels_cfg, _dayOffset, latitude, longitude, msl, darkskyApi, _yrWeight, _darkSkyWeight);
+  }
+
+  var result = {
+    'darkSky': [],
+    'yr': []
+  }
+
+  var today = new moment().hour(3).minute(0).second(0);
+  var daysForward = _daysForward;
+  var points = [];
+  for (let index = 0; index < daysForward; index++) {
+    var day = today.add(index, 'days');
+    result.darkSky.push({
+      'day': day.format(),
+      'value': calculateSolarPredictionLocal(0, 1, index)
+    })
+    points.push(
+      {
+        measurement: 'prediction',
+        fields: {
+          production: result.darkSky[index].value,
+        },
+        tags: {
+          source: 'darksky'
+        },
+        timestamp: day.unix() + '000000000'
+      });
+    result.yr.push({
+      'day': day.format(),
+      'value': calculateSolarPredictionLocal(1, 0, index)
+    })
+    points.push(
+      {
+        measurement: 'prediction',
+        fields: {
+          production: result.yr[index].value,
+        },
+        tags: {
+          source: 'yr'
+        },
+        timestamp: day.unix() + '000000000'
+      });
+  }
+
+  console.log(points);
+
+  influx_batrium.writePoints(points).catch(err => {
+    console.error('Error writing to InfluxDB', err)
+  })
+
+  return result;
+}
 
 
 app.use(express.static('static'))
