@@ -38,7 +38,9 @@ const timezone = "Europe/Copenhagen";
 //const house_kwh_query = "SELECT sum(kwh) as kwh FROM energy WHERE (device = 'house' OR device= 'house2') AND time > now() - 1d GROUP BY time(1d) fill(0) TZ('"+timezone+"')";
 //const house_kwh_query = "SELECT sum(kwh) as kwh FROM energy WHERE (device = 'house' OR device= 'house2') AND time > now() - 1d GROUP BY time(1d) fill(0) TZ('"+timezone+"')";
 //const house_kwh_query = "select sum(wh)/1000 as kwh from (select watt/60 as wh from(select MEAN(ac_output_active_power) as watt FROM solar WHERE time > now() - 1d GROUP BY time(60s) fill(null) TZ('" + timezone + "') )) group by time(1d) fill(0) TZ('" + timezone + "')";
-const house_kwh_query = "SELECT max(energy) as wh FROM pzem WHERE location = 'pzem_output' AND time > now() - 1d GROUP BY time(1d) fill(0) TZ('" + timezone + "')";
+const house_kwh_query = "SELECT difference(last(energy)) as wh FROM pzem WHERE location = 'pzem_output' AND time > now() - 1d GROUP BY time(1d) fill(0) TZ('" + timezone + "')";
+
+const grid_kwh_query = "SELECT difference(last(energy)) as wh FROM pzem WHERE (location = 'pzem_intput') AND time > now() - 1d GROUP BY time(1d) fill(0) TZ('" + timezone + "')";
 //const grid_kwh_query = "SELECT sum(kwh) as kwh FROM energy WHERE (device = 'sdm120') AND time > now() - 1d GROUP BY time(1d) fill(0) TZ('"+timezone+"')"
 const solar_kwh_query = "select sum(wh)/1000 as kwh from (select watt/60 as wh from(SELECT MEAN(battery_voltage)*MEAN(pv_input_current_for_battery)*1.03 as watt FROM solar WHERE time > now() - 1d GROUP BY time(60s) fill(null) TZ('" + timezone + "') )) group by time(1d) fill(0) TZ('" + timezone + "')";
 
@@ -48,7 +50,7 @@ const powerwall_soc_query = "SELECT last(ShuntSOC),last(DailySessionCumulShuntkW
 // MQTT watt topics
 //const house_watt_topic = 'solar/output';
 const house_watt_topic = 'pzem/output';
-const grid_watt_topic = 'solar/ac';
+const grid_watt_topic = 'pzem/input';
 const powerwall_watt_topic = 'Batrium/6687/3e32';
 const solar_watt_topic = "solar/solar";
 
@@ -189,7 +191,7 @@ mqtt_client.on('message', (topic, message) => {
       io.emit('cellTemps', { minT: tmpPowerwall.MinCellTemp, maxT: tmpPowerwall.MaxCellTemp, avgT: tmpPowerwall.AvgCellTemp })
     } else
       if (topic === grid_watt_topic) {
-        grid = parseInt(message.toString())
+        grid = JSON.parse(message).power;
         io.emit('grid', { message: grid });
       } else
         if (topic === solar_watt_topic) {
@@ -200,15 +202,16 @@ mqtt_client.on('message', (topic, message) => {
 
 app.get('/energy', function (req, res) {
   influx.query(house_kwh_query).then(house => {
-    //influx.query(grid_kwh_query).then ( grid => {
-    influx.query(solar_kwh_query).then(solar => {
-      res.json(
-        [
-          //{"name":"grid kwh","value": (grid === undefined || grid.length == 0)? 0 : grid[1].kwh},
-          { "name": "house kwh", "value": house[1].wh/1000 },
-          { "name": "solar kwh", "value": solar[solar.length - 1].kwh }
-        ]
-      );
+    influx.query(grid_kwh_query).then(grid => {
+      influx.query(solar_kwh_query).then(solar => {
+        res.json(
+          [
+            { "name": "grid kwh", "value": (grid === undefined || grid.length == 0) ? 0 : grid[1].wh / 1000 },
+            { "name": "house kwh", "value": house[1].wh / 1000 },
+            { "name": "solar kwh", "value": solar[solar.length - 1].kwh }
+          ]
+        );
+      });
     });
   });
 });
