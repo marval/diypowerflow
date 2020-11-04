@@ -52,7 +52,7 @@ const powerwall_soc_query = "SELECT last(ShuntSOC),last(DailySessionCumulShuntkW
 const house_watt_topic = 'pzem/output';
 const grid_watt_topic = 'pzem/input';
 const powerwall_watt_topic = 'Batrium/6687/3e32';
-const solar_watt_topic = "solar/solar";
+const solar_watt_topic = "homeassistant/sensor/easun_PV_in_watts";
 
 
 //**************************************************
@@ -201,7 +201,7 @@ mqtt_client.on('message', (topic, message) => {
 })
 
 app.get('/energy', function (req, res) {
-  influx.query(house_kwh_query).then(house => {
+  /*influx.query(house_kwh_query).then(house => {
     influx.query(grid_kwh_query).then(grid => {
       influx.query(solar_kwh_query).then(solar => {
         res.json(
@@ -213,7 +213,34 @@ app.get('/energy', function (req, res) {
         );
       });
     });
-  });
+  });*/
+  Promise.allSettled([
+    influx.query(house_kwh_query),
+    influx.query(grid_kwh_query),
+    influx.query(solar_kwh_query)
+  ])
+    .then(results => {
+      //console.log(JSON.stringify(results));
+      var jsonRes = [];
+      results.forEach((result, num) => {
+        if(result.status == 'fulfilled' && result.value.length > 0) {
+          switch(num) {
+            case 0:
+              jsonRes.push({ "name": "house kwh", "value": result.value[1].wh / 1000 })
+              break;
+            case 1:
+              console.log(result.value);
+              jsonRes.push({ "name": "grid kwh", "value": result.value[1].wh / 1000 })
+              break;
+            case 2:
+              jsonRes.push({ "name": "solar kwh", "value": result.value[result.value.length - 1].wh / 1000 })
+              break;
+          }
+        }
+      })
+      res.json(jsonRes);
+    })
+    .catch(err => console.log(err));
 });
 //})
 
@@ -225,6 +252,11 @@ app.get('/soc', function (req, res) {
       ]
     );
   });
+})
+
+app.get('/stats/:date?', function (req, res) {
+  console.log(req.params);
+  res.json("hi");
 })
 
 
