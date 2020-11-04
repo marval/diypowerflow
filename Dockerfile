@@ -1,4 +1,4 @@
-FROM node:10-slim
+FROM node:12-slim
 #copy the Node Reload server - exposed at port 4500
 COPY package.json /tmp
 COPY server.js /tmp
