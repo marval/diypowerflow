@@ -201,19 +201,6 @@ mqtt_client.on('message', (topic, message) => {
 })
 
 app.get('/energy', function (req, res) {
-  /*influx.query(house_kwh_query).then(house => {
-    influx.query(grid_kwh_query).then(grid => {
-      influx.query(solar_kwh_query).then(solar => {
-        res.json(
-          [
-            { "name": "grid kwh", "value": (grid === undefined || grid.length == 0) ? 0 : grid[1].wh / 1000 },
-            { "name": "house kwh", "value": house[1].wh / 1000 },
-            { "name": "solar kwh", "value": solar[solar.length - 1].kwh }
-          ]
-        );
-      });
-    });
-  });*/
   Promise.allSettled([
     influx.query(house_kwh_query),
     influx.query(grid_kwh_query),
@@ -229,11 +216,10 @@ app.get('/energy', function (req, res) {
               jsonRes.push({ "name": "house kwh", "value": result.value[1].wh / 1000 })
               break;
             case 1:
-              console.log(result.value);
               jsonRes.push({ "name": "grid kwh", "value": result.value[1].wh / 1000 })
               break;
             case 2:
-              jsonRes.push({ "name": "solar kwh", "value": result.value[result.value.length - 1].wh / 1000 })
+              jsonRes.push({ "name": "solar kwh", "value": result.value[result.value.length - 1].kwh })
               break;
           }
         }
@@ -242,7 +228,6 @@ app.get('/energy', function (req, res) {
     })
     .catch(err => console.log(err));
 });
-//})
 
 app.get('/soc', function (req, res) {
   influx_batrium.query(powerwall_soc_query).then(soc => {
