@@ -45,7 +45,11 @@ function calculateHourWh(panels, lat, lon, sunrise, sunset, sun, hour) {
 }
 
 function getYR(panels_cfg, lat, lon, msl, sunrise, sunset) {
-    var res = request('GET', 'https://api.met.no/weatherapi/locationforecast/1.9/?lat='+lat+'&lon='+lon+'&msl='+msl);
+    var res = request('GET', 'https://api.met.no/weatherapi/locationforecast/2.0/classic?altitude='+msl+'&lat='+lat+'&lon='+lon, {
+        headers: {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36'
+        }
+    });//'https://api.met.no/weatherapi/locationforecast/2.0/?lat='+lat+'&lon='+lon+'&msl='+msl);
     var options = {
         attributeNamePrefix : "",
         attrNodeName: false,
