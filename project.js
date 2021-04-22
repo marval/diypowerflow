@@ -51,7 +51,8 @@ const powerwall_soc_query = "SELECT last(ShuntSOC),last(DailySessionCumulShuntkW
 //const house_watt_topic = 'solar/output';
 const house_watt_topic = 'pzem/output';
 const grid_watt_topic = 'pzem/input';
-const powerwall_watt_topic = 'Batrium/6687/3e32';
+const powerwall_shunt_topic = 'Batrium/6687/3f34';
+const powerwall_cell_topic = 'Batrium/6687/3e33';
 const solar_watt_topic = "homeassistant/sensor/easun_PV_in_watts";
 
 
@@ -164,7 +165,8 @@ mqtt_client.on('connect', () => {
   //  console.log("MQTT connected");
   mqtt_client.subscribe(house_watt_topic);
   mqtt_client.subscribe(grid_watt_topic);
-  mqtt_client.subscribe(powerwall_watt_topic);
+  mqtt_client.subscribe(powerwall_shunt_topic);
+  mqtt_client.subscribe(powerwall_cell_topic);
   mqtt_client.subscribe(solar_watt_topic);
 })
 
@@ -182,13 +184,16 @@ mqtt_client.on('message', (topic, message) => {
     house = JSON.parse(message).power;
     io.emit('house', { message: house });
   } else
-    if (topic === powerwall_watt_topic) {
+    if (topic === powerwall_cell_topic) {
+      var tmpPowerwall = JSON.parse(message);
+
+      io.emit('cellVoltages', { minV: tmpPowerwall.MinCellVolt, maxV: tmpPowerwall.MaxCellVolt, avgV: tmpPowerwall.AvgCellVolt })
+      io.emit('cellTemps', { minT: tmpPowerwall.MinCellTemp, maxT: tmpPowerwall.MaxCellTemp, avgT: tmpPowerwall.AvgCellTemp })
+    } else if (topic === powerwall_shunt_topic) {
       var tmpPowerwall = JSON.parse(message);
 
       powerwall = Number(tmpPowerwall.ShuntVoltage) * Number(tmpPowerwall.ShuntCurrent);
       io.emit('powerwall', { message: powerwall });
-      io.emit('cellVoltages', { minV: tmpPowerwall.MinCellVolt, maxV: tmpPowerwall.MaxCellVolt, avgV: tmpPowerwall.AvgCellVolt })
-      io.emit('cellTemps', { minT: tmpPowerwall.MinCellTemp, maxT: tmpPowerwall.MaxCellTemp, avgT: tmpPowerwall.AvgCellTemp })
     } else
       if (topic === grid_watt_topic) {
         grid = JSON.parse(message).power;
